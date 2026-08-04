@@ -2,10 +2,9 @@
  * The user picker on the Registrations admin page.
  *
  * Enhances the add-registration text field into a search-as-you-type picker.
- * Selecting a match fills the pmpro_events_user_id hidden field and shows a
- * confirmation card with the member's level and event access, so the admin
- * knows exactly who they are registering before they submit. Without
- * JavaScript the plain text field posts as before.
+ * Matches show the member's avatar, email, and membership level; selecting one
+ * fills the pmpro_events_user_id hidden field. Without JavaScript the plain
+ * text field posts as before.
  */
 ( function ( i18n ) {
 	var __ = i18n.__;
@@ -18,7 +17,6 @@
 
 	var form = input.closest( 'form' );
 	var hiddenId = form.querySelector( 'input[name="pmpro_events_user_id"]' );
-	var submit = form.querySelector( 'input[type="submit"], button[type="submit"]' );
 	var eventField = form.querySelector( 'input[name="event_id"]' );
 	var eventId = eventField ? eventField.value : 0;
 
@@ -33,12 +31,6 @@
 	list.setAttribute( 'role', 'listbox' );
 	list.hidden = true;
 	wrap.appendChild( list );
-
-	// The confirmation card replaces the dropdown once a member is chosen.
-	var card = document.createElement( 'div' );
-	card.className = 'pmpro_events_user_card';
-	card.hidden = true;
-	wrap.parentNode.insertBefore( card, wrap.nextSibling );
 
 	var results = [];
 	var activeIndex = -1;
@@ -57,31 +49,6 @@
 		activeIndex = -1;
 	}
 
-	function clearSelection() {
-		hiddenId.value = '';
-		card.hidden = true;
-		card.innerHTML = '';
-		if ( submit ) {
-			submit.disabled = false;
-		}
-	}
-
-	function userText( user ) {
-		var line = document.createElement( 'span' );
-		line.className = 'pmpro_events_user_search_text';
-
-		var name = document.createElement( 'strong' );
-		name.textContent = user.name || user.login;
-
-		var meta = document.createElement( 'span' );
-		meta.textContent = user.email + ( user.level ? ' — ' + user.level : '' );
-
-		line.appendChild( name );
-		line.appendChild( meta );
-
-		return line;
-	}
-
 	function renderList() {
 		list.innerHTML = '';
 
@@ -95,14 +62,24 @@
 		results.forEach( function ( user, index ) {
 			var item = document.createElement( 'li' );
 			item.setAttribute( 'role', 'option' );
-			item.dataset.index = index;
 
 			var avatar = document.createElement( 'img' );
 			avatar.src = user.avatar;
 			avatar.alt = '';
 			item.appendChild( avatar );
 
-			item.appendChild( userText( user ) );
+			var text = document.createElement( 'span' );
+			text.className = 'pmpro_events_user_search_text';
+
+			var name = document.createElement( 'strong' );
+			name.textContent = user.name || user.login;
+			text.appendChild( name );
+
+			var meta = document.createElement( 'span' );
+			meta.textContent = user.email + ( user.level ? ' — ' + user.level : '' );
+			text.appendChild( meta );
+
+			item.appendChild( text );
 
 			if ( user.registered ) {
 				var badge = document.createElement( 'span' );
@@ -141,46 +118,6 @@
 
 		hiddenId.value = user.id;
 		input.value = user.login;
-
-		card.innerHTML = '';
-
-		var avatar = document.createElement( 'img' );
-		avatar.src = user.avatar;
-		avatar.alt = '';
-		card.appendChild( avatar );
-
-		var details = document.createElement( 'div' );
-		details.className = 'pmpro_events_user_card_details';
-
-		var name = document.createElement( 'strong' );
-		name.textContent = user.name || user.login;
-		details.appendChild( name );
-
-		var meta = document.createElement( 'span' );
-		meta.textContent = user.email;
-		details.appendChild( meta );
-
-		var level = document.createElement( 'span' );
-		level.textContent = user.level || __( 'No membership level', 'pmpro-events' );
-		details.appendChild( level );
-
-		var status = document.createElement( 'span' );
-		if ( user.registered ) {
-			status.className = 'pmpro_events_user_card_status is-error';
-			status.textContent = __( 'This member is already registered for this event.', 'pmpro-events' );
-			if ( submit ) {
-				submit.disabled = true;
-			}
-		} else if ( ! user.has_access ) {
-			status.className = 'pmpro_events_user_card_status is-warning';
-			status.textContent = __( 'This member cannot view this event with their membership level. You can still register them.', 'pmpro-events' );
-		}
-		if ( status.textContent ) {
-			details.appendChild( status );
-		}
-
-		card.appendChild( details );
-		card.hidden = false;
 	}
 
 	function search( term ) {
@@ -210,7 +147,7 @@
 		lastTerm = term;
 
 		// Anything typed after a selection is a new search.
-		clearSelection();
+		hiddenId.value = '';
 
 		window.clearTimeout( searchTimer );
 

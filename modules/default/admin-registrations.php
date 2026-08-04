@@ -357,8 +357,7 @@ function pmpro_events_find_user( $identifier ) {
  * Search members for the add-registration picker.
  *
  * Returns enough context for the admin to be sure they picked the right
- * person: name, email, membership level, whether they already hold a spot,
- * and whether their level gives them access to the event.
+ * person: name, email, membership level, and whether they already hold a spot.
  *
  * This is a custom endpoint rather than the REST users endpoint because that
  * requires list_users, a higher bar than the registrations capability.
@@ -417,7 +416,6 @@ function pmpro_events_ajax_search_users() {
 			'avatar'     => get_avatar_url( $user->ID, array( 'size' => 64 ) ),
 			'level'      => implode( ', ', $level_names ),
 			'registered' => $registered,
-			'has_access' => ! function_exists( 'pmpro_has_membership_access' ) || (bool) pmpro_has_membership_access( $event_id, $user->ID ),
 		);
 	}
 

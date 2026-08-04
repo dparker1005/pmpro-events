@@ -143,7 +143,7 @@ Please visit our premium support site at [https://www.paidmembershipspro.com](ht
 * FEATURE: Added a My Events block and [pmpro_events_my_events] shortcode that list a member's upcoming events.
 * FEATURE: Added a Registrations admin page with a per-event registrant list and CSV export.
 * FEATURE: Added a settings page under Memberships > Events for enabling the built-in module and renaming "Event" throughout the plugin.
-* ENHANCEMENT: Administrators can add, cancel, reactivate, and delete registrations from the Registrations page. Adding a registration searches members as you type and shows their membership level and event access before submitting.
+* ENHANCEMENT: Administrators can add, cancel, reactivate, and delete registrations from the Registrations page. Adding a registration searches members as you type, showing each match's email and membership level.
 * ENHANCEMENT: The single event template now uses Paid Memberships Pro's card, button, and message styles, so events match the site's chosen style variation.
 * ENHANCEMENT: Added a block template for single events so block themes don't render post meta that doesn't apply to an event.
 * ENHANCEMENT: Added Start Date, Capacity, and Registrations columns to the Events admin list, with sorting by start date.

@@ -114,39 +114,3 @@
 	font-size: 12px;
 	white-space: nowrap;
 }
-
-.pmpro_events_user_card {
-	display: flex;
-	align-items: flex-start;
-	gap: 10px;
-	margin: 0.75em 0 0;
-	padding: 10px;
-	max-width: 30em;
-	border: 1px solid #c3c4c7;
-	background: #f6f7f7;
-}
-
-.pmpro_events_user_card img {
-	flex: none;
-	width: 40px;
-	height: 40px;
-	border-radius: 50%;
-}
-
-.pmpro_events_user_card_details {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
-.pmpro_events_user_card_details span {
-	color: #50575e;
-}
-
-.pmpro_events_user_card_status.is-warning {
-	color: #996800;
-}
-
-.pmpro_events_user_card_status.is-error {
-	color: #d63638;
-}
