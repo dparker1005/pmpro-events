@@ -138,6 +138,30 @@ function pmpro_events_get_member_edit_url( $user_id, $panel = '' ) {
 }
 
 /**
+ * Get the URL of the registrations page, optionally for a specific event.
+ *
+ * Lives here rather than with the admin screens because the admin notification
+ * emails link to it, and those can be triggered from any context.
+ *
+ * @since 2.0
+ *
+ * @param int $event_id The event to view registrations for. 0 for the event picker.
+ * @return string The URL.
+ */
+function pmpro_events_get_registrations_url( $event_id = 0 ) {
+	$args = array(
+		'post_type' => PMProEvents_Event::POST_TYPE,
+		'page'      => 'pmpro-event-registrations',
+	);
+
+	if ( ! empty( $event_id ) ) {
+		$args['event_id'] = (int) $event_id;
+	}
+
+	return add_query_arg( $args, admin_url( 'edit.php' ) );
+}
+
+/**
  * Get the DateTimeZone to use for an event.
  *
  * Falls back to the site timezone when the event has no timezone of its own.

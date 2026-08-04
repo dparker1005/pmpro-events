@@ -20,27 +20,6 @@ function pmpro_events_get_registrations_capability() {
 }
 
 /**
- * Get the URL of the registrations page, optionally for a specific event.
- *
- * @since 2.0
- *
- * @param int $event_id The event to view registrations for. 0 for the event picker.
- * @return string The URL.
- */
-function pmpro_events_get_registrations_url( $event_id = 0 ) {
-	$args = array(
-		'post_type' => PMProEvents_Event::POST_TYPE,
-		'page'      => 'pmpro-event-registrations',
-	);
-
-	if ( ! empty( $event_id ) ) {
-		$args['event_id'] = (int) $event_id;
-	}
-
-	return add_query_arg( $args, admin_url( 'edit.php' ) );
-}
-
-/**
  * Get the URL for a row action on a registration.
  *
  * @since 2.0
@@ -264,7 +243,8 @@ function pmpro_events_registrations_page() {
 				<input type="hidden" name="event_id" value="<?php echo esc_attr( $event->get_id() ); ?>" />
 				<?php wp_nonce_field( 'pmpro_events_add_registration_' . $event->get_id(), 'pmpro_events_nonce' ); ?>
 				<label for="pmpro_events_add_user"><strong><?php esc_html_e( 'Add a registration', 'pmpro-events' ); ?></strong></label>
-				<input type="text" id="pmpro_events_add_user" name="pmpro_events_user" class="regular-text" placeholder="<?php esc_attr_e( 'Username, email, or user ID', 'pmpro-events' ); ?>" required />
+				<input type="hidden" name="pmpro_events_user_id" value="" />
+				<input type="text" id="pmpro_events_add_user" name="pmpro_events_user" class="regular-text" placeholder="<?php esc_attr_e( 'Search by name, username, email, or ID', 'pmpro-events' ); ?>" autocomplete="off" required />
 				<?php submit_button( __( 'Add Registration', 'pmpro-events' ), 'secondary', '', false ); ?>
 				<?php if ( ! empty( $capacity ) && $event->is_full() ) { ?>
 					<p class="description"><?php esc_html_e( 'This event is at capacity. Adding a registration here will overbook it.', 'pmpro-events' ); ?></p>
@@ -291,20 +271,37 @@ function pmpro_events_registrations_page() {
 }
 
 /**
- * Enqueue the admin stylesheet on the registrations page.
+ * Enqueue the stylesheet and the user picker on the registrations page.
  *
  * @since 2.0
  *
  * @param string $hook_suffix The current admin page.
  */
-function pmpro_events_registrations_enqueue_styles( $hook_suffix ) {
+function pmpro_events_registrations_enqueue_scripts( $hook_suffix ) {
 	if ( false === strpos( $hook_suffix, 'pmpro-event-registrations' ) ) {
 		return;
 	}
 
 	pmpro_events_enqueue_admin_style();
+
+	wp_enqueue_script(
+		'pmpro-events-registrations',
+		PMPRO_EVENTS_URL . '/js/registrations-admin.js',
+		array( 'wp-i18n' ),
+		PMPRO_EVENTS_VERSION,
+		true
+	);
+	wp_set_script_translations( 'pmpro-events-registrations', 'pmpro-events', PMPRO_EVENTS_DIR . '/languages' );
+	wp_localize_script(
+		'pmpro-events-registrations',
+		'pmproEventsRegistrations',
+		array(
+			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+			'nonce'   => wp_create_nonce( 'pmpro_events_search_users' ),
+		)
+	);
 }
-add_action( 'admin_enqueue_scripts', 'pmpro_events_registrations_enqueue_styles' );
+add_action( 'admin_enqueue_scripts', 'pmpro_events_registrations_enqueue_scripts' );
 
 /**
  * Send the admin back to the registrations page with a notice.
@@ -357,6 +354,78 @@ function pmpro_events_find_user( $identifier ) {
 }
 
 /**
+ * Search members for the add-registration picker.
+ *
+ * Returns enough context for the admin to be sure they picked the right
+ * person: name, email, membership level, whether they already hold a spot,
+ * and whether their level gives them access to the event.
+ *
+ * This is a custom endpoint rather than the REST users endpoint because that
+ * requires list_users, a higher bar than the registrations capability.
+ *
+ * @since 2.0
+ */
+function pmpro_events_ajax_search_users() {
+	check_ajax_referer( 'pmpro_events_search_users', 'nonce' );
+
+	if ( ! current_user_can( pmpro_events_get_registrations_capability() ) ) {
+		wp_send_json_error( null, 403 );
+	}
+
+	$term     = isset( $_GET['term'] ) ? sanitize_text_field( wp_unslash( $_GET['term'] ) ) : '';
+	$event_id = isset( $_GET['event_id'] ) ? (int) $_GET['event_id'] : 0;
+
+	if ( strlen( $term ) < 2 ) {
+		wp_send_json_success( array() );
+	}
+
+	$user_query = new WP_User_Query( array(
+		'search'         => '*' . $term . '*',
+		'search_columns' => array( 'user_login', 'user_email', 'user_nicename', 'display_name' ),
+		'number'         => 10,
+		'orderby'        => 'display_name',
+		'order'          => 'ASC',
+	) );
+
+	$users = $user_query->get_results();
+
+	// A numeric term is probably a user ID, which the column search won't match.
+	if ( ctype_digit( $term ) ) {
+		$exact = get_user_by( 'id', (int) $term );
+		if ( ! empty( $exact ) && ! in_array( $exact->ID, wp_list_pluck( $users, 'ID' ), true ) ) {
+			array_unshift( $users, $exact );
+		}
+	}
+
+	$results = array();
+	foreach ( $users as $user ) {
+		$levels      = function_exists( 'pmpro_getMembershipLevelsForUser' ) ? pmpro_getMembershipLevelsForUser( $user->ID ) : array();
+		$level_names = empty( $levels ) ? array() : wp_list_pluck( $levels, 'name' );
+
+		$registered = ! empty( PMProEvents_Event_Registration::get_registrations( array(
+			'event_id' => $event_id,
+			'user_id'  => $user->ID,
+			'status'   => 'active',
+			'limit'    => 1,
+		) ) );
+
+		$results[] = array(
+			'id'         => $user->ID,
+			'name'       => $user->display_name,
+			'login'      => $user->user_login,
+			'email'      => $user->user_email,
+			'avatar'     => get_avatar_url( $user->ID, array( 'size' => 64 ) ),
+			'level'      => implode( ', ', $level_names ),
+			'registered' => $registered,
+			'has_access' => ! function_exists( 'pmpro_has_membership_access' ) || (bool) pmpro_has_membership_access( $event_id, $user->ID ),
+		);
+	}
+
+	wp_send_json_success( $results );
+}
+add_action( 'wp_ajax_pmpro_events_search_users', 'pmpro_events_ajax_search_users' );
+
+/**
  * Add a registration from the admin.
  *
  * Admins can overbook a full event deliberately, so the capacity check is
@@ -384,7 +453,16 @@ function pmpro_events_admin_add_registration() {
 		pmpro_events_redirect_to_registrations( $event_id, 'registration_off' );
 	}
 
-	$user = pmpro_events_find_user( isset( $_POST['pmpro_events_user'] ) ? sanitize_text_field( wp_unslash( $_POST['pmpro_events_user'] ) ) : '' );
+	// The picker resolves the user to an ID. The text field is the no-JS fallback.
+	$user    = false;
+	$user_id = isset( $_POST['pmpro_events_user_id'] ) ? (int) $_POST['pmpro_events_user_id'] : 0;
+	if ( $user_id > 0 ) {
+		$user = get_user_by( 'id', $user_id );
+	}
+
+	if ( empty( $user ) ) {
+		$user = pmpro_events_find_user( isset( $_POST['pmpro_events_user'] ) ? sanitize_text_field( wp_unslash( $_POST['pmpro_events_user'] ) ) : '' );
+	}
 
 	if ( empty( $user ) ) {
 		pmpro_events_redirect_to_registrations( $event_id, 'no_user' );

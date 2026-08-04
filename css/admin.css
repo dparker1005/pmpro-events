@@ -44,3 +44,109 @@
 .pmpro_events_add_registration .description {
 	margin: 0.75em 0 0;
 }
+
+/**
+ * The add-registration user picker.
+ */
+.pmpro_events_user_search {
+	position: relative;
+	display: inline-block;
+}
+
+.pmpro_events_user_search_results {
+	position: absolute;
+	z-index: 10;
+	top: 100%;
+	left: 0;
+	right: 0;
+	margin: 0;
+	max-height: 20em;
+	overflow-y: auto;
+	border: 1px solid #8c8f94;
+	background: #fff;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.pmpro_events_user_search_results li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	padding: 6px 8px;
+	cursor: pointer;
+}
+
+.pmpro_events_user_search_results li.is-active,
+.pmpro_events_user_search_results li:hover {
+	background: #f0f6fc;
+}
+
+.pmpro_events_user_search_results li.pmpro_events_user_search_none {
+	cursor: default;
+	color: #646970;
+	background: none;
+}
+
+.pmpro_events_user_search_results img {
+	flex: none;
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+}
+
+.pmpro_events_user_search_text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.pmpro_events_user_search_text span {
+	font-size: 12px;
+	color: #646970;
+}
+
+.pmpro_events_user_search_badge {
+	margin-left: auto;
+	padding: 2px 8px;
+	border-radius: 3px;
+	background: #f0f0f1;
+	color: #50575e;
+	font-size: 12px;
+	white-space: nowrap;
+}
+
+.pmpro_events_user_card {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin: 0.75em 0 0;
+	padding: 10px;
+	max-width: 30em;
+	border: 1px solid #c3c4c7;
+	background: #f6f7f7;
+}
+
+.pmpro_events_user_card img {
+	flex: none;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+}
+
+.pmpro_events_user_card_details {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.pmpro_events_user_card_details span {
+	color: #50575e;
+}
+
+.pmpro_events_user_card_status.is-warning {
+	color: #996800;
+}
+
+.pmpro_events_user_card_status.is-error {
+	color: #d63638;
+}
