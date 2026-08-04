@@ -46,7 +46,7 @@ function pmpro_events_plugin_init() {
 		require_once( $path . '/modules/default/calendar.php' );
 		require_once( $path . '/modules/default/template.php' );
 		require_once( $path . '/modules/default/block-template.php' );
-		require_once( $path . '/modules/default/account-page.php' );
+		require_once( $path . '/modules/default/my-events.php' );
 
 		if ( is_admin() ) {
 			require_once( $path . '/modules/default/admin.php' );

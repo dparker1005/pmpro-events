@@ -22,7 +22,7 @@ The built-in events module adds an Events post type with its own admin menu. Set
 * Turn on registration and members claim their spot with one click. No checkout, no payment.
 * Set a capacity to cap attendance, or leave it unlimited.
 * Registered attendees get the meeting URL and Add-to-Calendar links for Google Calendar, Outlook, and .ics download.
-* Members see their upcoming events on the Paid Memberships Pro account page.
+* Add the My Events block or the [pmpro_events_my_events] shortcode to your Membership Account page to show members their upcoming events.
 * Export the registrant list for any event to CSV.
 * Rename "Event" to "Session", "Webinar", or whatever fits your site.
 
@@ -140,7 +140,7 @@ Please visit our premium support site at [https://www.paidmembershipspro.com](ht
 * FEATURE: Registered attendees can add an event to Google Calendar, Outlook 365, Outlook.com, or download an .ics file.
 * FEATURE: Added registration confirmation and cancellation emails, editable under Memberships > Email Templates.
 * FEATURE: Added an Events panel to the Edit Member screen listing all of a member's registrations.
-* FEATURE: Added a "My Events" section to the Paid Memberships Pro account page.
+* FEATURE: Added a My Events block and [pmpro_events_my_events] shortcode that list a member's upcoming events.
 * FEATURE: Added a Registrations admin page with a per-event registrant list and CSV export.
 * FEATURE: Added a settings page under Memberships > Events for enabling the built-in module and renaming "Event" throughout the plugin.
 * ENHANCEMENT: Administrators can add, cancel, reactivate, and delete registrations from the Registrations page.

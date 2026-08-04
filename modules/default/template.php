@@ -488,19 +488,18 @@ function pmpro_events_get_registered_state_html( $event ) {
  * @return bool Whether to load the frontend styles.
  */
 function pmpro_events_needs_frontend_styles() {
-	if ( is_singular( PMProEvents_Event::POST_TYPE ) || pmpro_events_is_account_page() ) {
+	if ( is_singular( PMProEvents_Event::POST_TYPE ) ) {
 		return true;
 	}
 
-	// The account shortcode can be placed on any page, not just the one PMPro
-	// has configured as the account page.
+	// The My Events block or shortcode can be placed on any page.
 	$post = get_post();
 
-	return ! empty( $post ) && has_shortcode( $post->post_content, 'pmpro_account' );
+	return ! empty( $post ) && ( has_block( 'pmpro-events/my-events', $post ) || has_shortcode( (string) $post->post_content, 'pmpro_events_my_events' ) );
 }
 
 /**
- * Enqueue the frontend styles on event pages and the account page.
+ * Enqueue the frontend styles on event pages and pages showing My Events.
  *
  * @since 2.0
  */
