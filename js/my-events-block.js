@@ -6,7 +6,8 @@
  * wp globals rather than built — it is small enough that a build step would
  * be more code than the block.
  */
-( function ( blocks, element, serverSideRender, i18n ) {
+( function ( blocks, blockEditor, components, element, serverSideRender, i18n ) {
+	var el = element.createElement;
 	var __ = i18n.__;
 
 	blocks.registerBlockType( 'pmpro-events/my-events', {
@@ -26,9 +27,24 @@
 			multiple: false,
 		},
 		edit: function () {
-			return element.createElement( serverSideRender, {
-				block: 'pmpro-events/my-events',
-			} );
+			// useBlockProps() is what makes the block selectable in the editor,
+			// and Disabled keeps the preview's event links from eating clicks.
+			return el(
+				'div',
+				blockEditor.useBlockProps(),
+				el(
+					components.Disabled,
+					null,
+					el( serverSideRender, { block: 'pmpro-events/my-events' } )
+				)
+			);
 		},
 	} );
-} )( window.wp.blocks, window.wp.element, window.wp.serverSideRender, window.wp.i18n );
+} )(
+	window.wp.blocks,
+	window.wp.blockEditor,
+	window.wp.components,
+	window.wp.element,
+	window.wp.serverSideRender,
+	window.wp.i18n
+);

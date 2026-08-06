@@ -21,7 +21,7 @@ function pmpro_events_register_my_events_block() {
 	wp_register_script(
 		'pmpro-events-my-events-block',
 		PMPRO_EVENTS_URL . '/js/my-events-block.js',
-		array( 'wp-blocks', 'wp-element', 'wp-server-side-render', 'wp-i18n' ),
+		array( 'wp-blocks', 'wp-block-editor', 'wp-components', 'wp-element', 'wp-server-side-render', 'wp-i18n' ),
 		PMPRO_EVENTS_VERSION,
 		true
 	);
