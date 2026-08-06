@@ -27,11 +27,22 @@ function pmpro_events_register_my_events_block() {
 	);
 	wp_set_script_translations( 'pmpro-events-my-events-block', 'pmpro-events', PMPRO_EVENTS_DIR . '/languages' );
 
+	// The frontend styles under an editor-only handle, injected into the
+	// editor iframe so the preview isn't unstyled. Registering an already
+	// registered handle is a no-op, so both blocks can claim it.
+	wp_register_style(
+		'pmpro-events-editor-preview',
+		PMPRO_EVENTS_URL . '/css/frontend.css',
+		array(),
+		PMPRO_EVENTS_VERSION
+	);
+
 	register_block_type(
 		'pmpro-events/my-events',
 		array(
 			'api_version'     => 3,
 			'editor_script'   => 'pmpro-events-my-events-block',
+			'editor_style'    => 'pmpro-events-editor-preview',
 			'render_callback' => 'pmpro_events_render_my_events',
 		)
 	);

@@ -58,11 +58,10 @@ add_filter( 'the_content', 'pmpro_events_the_content', 20 );
  * @return string The markup.
  */
 function pmpro_events_get_event_header_html( $event ) {
-	$schedule = $event->get_date_range();
-	$location = $event->get_location_summary();
-	$message  = pmpro_events_get_status_message( $event );
+	$summary = pmpro_events_get_event_summary_html( $event );
+	$message = pmpro_events_get_status_message( $event );
 
-	if ( empty( $schedule ) && empty( $location ) && empty( $message ) ) {
+	if ( empty( $summary ) && empty( $message ) ) {
 		return '';
 	}
 
@@ -76,26 +75,7 @@ function pmpro_events_get_event_header_html( $event ) {
 				</div>
 			<?php } ?>
 
-			<?php if ( ! empty( $schedule ) || ! empty( $location ) ) { ?>
-				<div class="pmpro_events_summary">
-					<?php if ( ! empty( $schedule ) ) { ?>
-						<span class="pmpro_events_summary_item pmpro_events_summary_item-when">
-							<span class="pmpro_events_summary_icon" aria-hidden="true">&#128197;</span>
-							<span class="pmpro_events_summary_text"><?php echo esc_html( $schedule ); ?></span>
-							<?php if ( ! $event->all_day ) { ?>
-								<span class="pmpro_events_timezone"><?php echo esc_html( pmpro_events_get_timezone_abbreviation( $event ) ); ?></span>
-							<?php } ?>
-						</span>
-					<?php } ?>
-
-					<?php if ( ! empty( $location ) ) { ?>
-						<span class="pmpro_events_summary_item pmpro_events_summary_item-where">
-							<span class="pmpro_events_summary_icon" aria-hidden="true">&#128205;</span>
-							<span class="pmpro_events_summary_text"><?php echo esc_html( pmpro_events_get_short_location( $event ) ); ?></span>
-						</span>
-					<?php } ?>
-				</div>
-			<?php } ?>
+			<?php echo $summary; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		</div>
 	</div>
 	<?php
@@ -111,6 +91,49 @@ function pmpro_events_get_event_header_html( $event ) {
 	 * @param PMProEvents_Event $event The event.
 	 */
 	return apply_filters( 'pmpro_events_event_header_html', $html, $event );
+}
+
+/**
+ * Build the when/where summary line for an event.
+ *
+ * Shown under the single event title and for each event in the list view.
+ *
+ * @since 2.0
+ *
+ * @param PMProEvents_Event $event The event.
+ * @return string The markup, or an empty string when the event has no date or location.
+ */
+function pmpro_events_get_event_summary_html( $event ) {
+	$schedule = $event->get_date_range();
+	$location = pmpro_events_get_short_location( $event );
+
+	if ( empty( $schedule ) && empty( $location ) ) {
+		return '';
+	}
+
+	ob_start();
+	?>
+	<div class="pmpro_events_summary">
+		<?php if ( ! empty( $schedule ) ) { ?>
+			<span class="pmpro_events_summary_item pmpro_events_summary_item-when">
+				<span class="pmpro_events_summary_icon" aria-hidden="true">&#128197;</span>
+				<span class="pmpro_events_summary_text"><?php echo esc_html( $schedule ); ?></span>
+				<?php if ( ! $event->all_day ) { ?>
+					<span class="pmpro_events_timezone"><?php echo esc_html( pmpro_events_get_timezone_abbreviation( $event ) ); ?></span>
+				<?php } ?>
+			</span>
+		<?php } ?>
+
+		<?php if ( ! empty( $location ) ) { ?>
+			<span class="pmpro_events_summary_item pmpro_events_summary_item-where">
+				<span class="pmpro_events_summary_icon" aria-hidden="true">&#128205;</span>
+				<span class="pmpro_events_summary_text"><?php echo esc_html( $location ); ?></span>
+			</span>
+		<?php } ?>
+	</div>
+	<?php
+
+	return ob_get_clean();
 }
 
 /**
@@ -492,10 +515,17 @@ function pmpro_events_needs_frontend_styles() {
 		return true;
 	}
 
-	// The My Events block or shortcode can be placed on any page.
+	// The events blocks and shortcodes can be placed on any page.
 	$post = get_post();
 
-	return ! empty( $post ) && ( has_block( 'pmpro-events/my-events', $post ) || has_shortcode( (string) $post->post_content, 'pmpro_events_my_events' ) );
+	if ( empty( $post ) ) {
+		return false;
+	}
+
+	return has_block( 'pmpro-events/my-events', $post )
+		|| has_block( 'pmpro-events/events', $post )
+		|| has_shortcode( (string) $post->post_content, 'pmpro_events_my_events' )
+		|| has_shortcode( (string) $post->post_content, 'pmpro_events' );
 }
 
 /**

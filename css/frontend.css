@@ -106,6 +106,78 @@
 		font-size: 0.9em;
 		opacity: 0.8;
 	}
+
+	/**
+	 * The Upcoming Events list view.
+	 */
+	.pmpro_events_list {
+		display: grid;
+		gap: var(--pmpro--base--spacing--medium, 1rem);
+	}
+
+	.pmpro_events_list .pmpro_card {
+		margin: 0;
+	}
+
+	.pmpro_events_list_title {
+		margin: 0 0 0.25em;
+	}
+
+	.pmpro_events_list .pmpro_events_summary {
+		border: 0;
+		padding: 0;
+	}
+
+	/**
+	 * The Upcoming Events calendar view.
+	 */
+	.pmpro_events_calendar_nav {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1em;
+		margin: 0 0 var(--pmpro--base--spacing--small, 0.5rem);
+	}
+
+	.pmpro_events_calendar table {
+		width: 100%;
+		table-layout: fixed;
+		border-collapse: collapse;
+	}
+
+	.pmpro_events_calendar th,
+	.pmpro_events_calendar td {
+		padding: 0.35em;
+		border: 1px solid var(--pmpro--color--border--variation, rgba(127, 127, 127, 0.25));
+		vertical-align: top;
+		text-align: left;
+	}
+
+	.pmpro_events_calendar td {
+		height: 5em;
+	}
+
+	.pmpro_events_calendar td.is-today {
+		background: var(--pmpro--color--surface--variation, rgba(127, 127, 127, 0.08));
+	}
+
+	.pmpro_events_calendar_day {
+		display: block;
+		font-size: 0.85em;
+		opacity: 0.7;
+	}
+
+	.pmpro_events_calendar_event {
+		display: block;
+		margin: 0.25em 0 0;
+		font-size: 0.85em;
+		line-height: 1.3;
+		overflow-wrap: break-word;
+	}
+
+	.pmpro_events_calendar_time {
+		font-weight: 700;
+	}
 }
 
 @media (max-width: 480px) {

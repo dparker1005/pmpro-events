@@ -18,6 +18,15 @@ class PMProEvents_Event {
 	const POST_TYPE = 'pmpro_event';
 
 	/**
+	 * The taxonomy used to categorize events.
+	 *
+	 * @since 2.0
+	 *
+	 * @var string
+	 */
+	const TAXONOMY = 'pmpro_event_category';
+
+	/**
 	 * The ID of the event.
 	 *
 	 * @since 2.0
@@ -106,14 +115,21 @@ class PMProEvents_Event {
 	 * @param array $args {
 	 *     Optional. Query arguments.
 	 *
-	 *     @type int    $limit       Number of events to return. 0 for all. Default 0.
-	 *     @type string $order       'ASC' or 'DESC'. Default 'ASC'.
-	 *     @type string $post_status Post status to query. Default 'publish'.
+	 *     @type string          $timeframe   'upcoming', 'past', or 'all'. Default 'all'.
+	 *     @type string          $month       Limit to events starting in a month, as 'YYYY-MM'.
+	 *                                        Compared against the event's own local date.
+	 *     @type string|string[] $category    Limit to one or more event category slugs.
+	 *     @type int             $limit       Number of events to return. 0 for all. Default 0.
+	 *     @type string          $order       'ASC' or 'DESC'. Default 'ASC'.
+	 *     @type string          $post_status Post status to query. Default 'publish'.
 	 * }
 	 * @return PMProEvents_Event[] The list of events.
 	 */
 	public static function get_events( $args = array() ) {
 		$args = wp_parse_args( $args, array(
+			'timeframe'   => 'all',
+			'month'       => '',
+			'category'    => '',
 			'limit'       => 0,
 			'order'       => 'ASC',
 			'post_status' => 'publish',
@@ -131,6 +147,70 @@ class PMProEvents_Event {
 			'orderby'        => 'meta_value',
 			'order'          => 'DESC' === strtoupper( $args['order'] ) ? 'DESC' : 'ASC',
 		);
+
+		$meta_query = array();
+
+		// Compare against the end date when we have one so that an event that is
+		// currently in progress still counts as upcoming. Events with no date at
+		// all match neither timeframe.
+		if ( 'all' !== $args['timeframe'] ) {
+			$now     = current_time( 'mysql', true );
+			$compare = 'upcoming' === $args['timeframe'] ? '>=' : '<';
+
+			$meta_query[] = array(
+				'relation' => 'OR',
+				array(
+					'key'     => 'pmpro_event_end_utc',
+					'value'   => $now,
+					'compare' => $compare,
+					'type'    => 'DATETIME',
+				),
+				array(
+					'relation' => 'AND',
+					array(
+						'key'     => 'pmpro_event_end_utc',
+						'value'   => '',
+						'compare' => '=',
+					),
+					array(
+						'key'     => 'pmpro_event_start_utc',
+						'value'   => $now,
+						'compare' => $compare,
+						'type'    => 'DATETIME',
+					),
+				),
+			);
+		}
+
+		// The month is compared against the local start date, so each event lands
+		// on the calendar date its own timezone says it starts.
+		if ( preg_match( '/^\d{4}-(0[1-9]|1[0-2])$/', (string) $args['month'] ) ) {
+			$meta_query[] = array(
+				'key'     => 'pmpro_event_start',
+				'value'   => array(
+					$args['month'] . '-01 00:00:00',
+					gmdate( 'Y-m-t', strtotime( $args['month'] . '-01' ) ) . ' 23:59:59',
+				),
+				'compare' => 'BETWEEN',
+				'type'    => 'DATETIME',
+			);
+		}
+
+		if ( ! empty( $meta_query ) ) {
+			$query_args['meta_query'] = count( $meta_query ) > 1
+				? array_merge( array( 'relation' => 'AND' ), $meta_query )
+				: $meta_query;
+		}
+
+		if ( ! empty( $args['category'] ) ) {
+			$query_args['tax_query'] = array(
+				array(
+					'taxonomy' => self::TAXONOMY,
+					'field'    => 'slug',
+					'terms'    => array_map( 'sanitize_title', (array) $args['category'] ),
+				),
+			);
+		}
 
 		/**
 		 * Filter the WP_Query arguments used to look up events.

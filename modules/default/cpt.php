@@ -119,6 +119,48 @@ function pmpro_events_register_post_type() {
 add_action( 'init', 'pmpro_events_register_post_type' );
 
 /**
+ * Register the event category taxonomy.
+ *
+ * Deliberately not public: categories exist to organize events in the admin
+ * and to scope the Upcoming Events block to a series, not to create term
+ * archive pages. Frontend archives can be enabled later without breaking
+ * anything; taking them away again couldn't be.
+ *
+ * @since 2.0
+ */
+function pmpro_events_register_taxonomy() {
+	$singular = pmpro_events_get_label( 'singular' );
+
+	$labels = array(
+		/* translators: %s: the singular event label, e.g. "Event". */
+		'name'          => sprintf( _x( '%s Categories', 'singular event label', 'pmpro-events' ), $singular ),
+		/* translators: %s: the singular event label, e.g. "Event". */
+		'singular_name' => sprintf( _x( '%s Category', 'singular event label', 'pmpro-events' ), $singular ),
+	);
+
+	$args = array(
+		'labels'            => $labels,
+		'hierarchical'      => true,
+		'public'            => false,
+		'show_ui'           => true,
+		'show_in_rest'      => true,
+		'show_admin_column' => true,
+	);
+
+	/**
+	 * Filter the arguments used to register the event category taxonomy.
+	 *
+	 * @since 2.0
+	 *
+	 * @param array $args The register_taxonomy() arguments.
+	 */
+	$args = apply_filters( 'pmpro_events_register_taxonomy_args', $args );
+
+	register_taxonomy( PMProEvents_Event::TAXONOMY, PMProEvents_Event::POST_TYPE, $args );
+}
+add_action( 'init', 'pmpro_events_register_taxonomy' );
+
+/**
  * Register the event meta so the block editor sidebar panels can bind to it.
  *
  * @since 2.0
