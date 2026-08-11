@@ -31,7 +31,17 @@ function pmpro_events_redirect_to_event( $event_id, $message ) {
 		$url = home_url();
 	}
 
-	wp_safe_redirect( add_query_arg( 'pmpro_events_message', $message, $url ) );
+	// The nonce ties the message to the visitor who performed the action, so a
+	// copied or shared URL doesn't replay it for someone else.
+	$url = add_query_arg(
+		array(
+			'pmpro_events_message'       => $message,
+			'pmpro_events_message_nonce' => wp_create_nonce( 'pmpro_events_message_' . $message . '_' . $event_id ),
+		),
+		$url
+	);
+
+	wp_safe_redirect( $url );
 	exit;
 }
 
@@ -124,13 +134,23 @@ add_action( 'admin_post_nopriv_pmpro_events_cancel', 'pmpro_events_handle_cancel
  * @return array|null Array with 'class' and 'text', or null if there is no message.
  */
 function pmpro_events_get_status_message( $event ) {
-	if ( empty( $_REQUEST['pmpro_events_message'] ) ) {
+	if ( empty( $_REQUEST['pmpro_events_message'] ) || empty( $_REQUEST['pmpro_events_message_nonce'] ) ) {
+		return null;
+	}
+
+	$message = sanitize_key( wp_unslash( $_REQUEST['pmpro_events_message'] ) );
+
+	// Only show the message to the visitor who performed the action it
+	// describes. The message names the action, so it can't be swapped for a
+	// different one either.
+	$nonce = sanitize_text_field( wp_unslash( $_REQUEST['pmpro_events_message_nonce'] ) );
+	if ( ! wp_verify_nonce( $nonce, 'pmpro_events_message_' . $message . '_' . $event->get_id() ) ) {
 		return null;
 	}
 
 	$singular = pmpro_events_get_label( 'singular_lowercase' );
 
-	switch ( sanitize_key( wp_unslash( $_REQUEST['pmpro_events_message'] ) ) ) {
+	switch ( $message ) {
 		case 'registered':
 			return array(
 				'class' => 'pmpro_success',

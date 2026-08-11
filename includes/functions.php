@@ -23,22 +23,39 @@ function pmpro_events_enqueue_admin_style() {
 }
 
 /**
- * Flush rewrite rules once, on the request after they changed.
+ * Flush rewrite rules once, on the first request where they would differ.
  *
- * Activation and a settings save both set this flag rather than flushing
- * directly: the event post type isn't registered during either request, so an
- * immediate flush would build rules without it. This runs after init 10, when
- * the active modules have registered their post types. It's always loaded, so
- * the flush also happens when the Default module was just turned off.
+ * Activation and a settings save can't flush directly — the event post type
+ * isn't registered during either request, so an immediate flush would build
+ * rules without it. Instead of only honoring a one-shot flag (which gets
+ * consumed even on a request where the post type never registered, e.g. when
+ * this plugin is activated before PMPro), track the rewrite state the rules
+ * were last built for and flush whenever it changes: an upgrade from 1.x, the
+ * Default module toggling, PMPro activating or deactivating, or the events
+ * page setting moving the archive.
+ *
+ * This runs after init 10, when the active modules have registered their post
+ * types. It's always loaded, so the flush also happens when the Default module
+ * was just turned off.
  *
  * @since 2.0
  */
 function pmpro_events_maybe_flush_rewrite_rules() {
-	if ( ! get_option( 'pmpro_events_flush_rewrite_rules' ) ) {
+	// The literal post type name, since the class only loads with the module.
+	$post_type = get_post_type_object( 'pmpro_event' );
+
+	$state = empty( $post_type )
+		? 'none'
+		: 'event:' . ( empty( $post_type->has_archive ) ? 'no-archive' : $post_type->has_archive );
+
+	if ( ! get_option( 'pmpro_events_flush_rewrite_rules' ) && get_option( 'pmpro_events_rewrite_state' ) === $state ) {
 		return;
 	}
 
 	flush_rewrite_rules();
+
+	// Autoloaded, since it is compared on every request.
+	update_option( 'pmpro_events_rewrite_state', $state, true );
 	delete_option( 'pmpro_events_flush_rewrite_rules' );
 }
 add_action( 'init', 'pmpro_events_maybe_flush_rewrite_rules', 20 );

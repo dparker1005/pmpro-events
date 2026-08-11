@@ -340,25 +340,20 @@ function pmpro_events_get_registration_html( $event ) {
 	$singular = pmpro_events_get_label( 'singular_lowercase' );
 	$details  = pmpro_events_get_event_details_html( $event );
 
-	// The card is the registration surface, so an event that isn't taking
-	// registrations only gets one if it has details worth repeating.
+	$registration = $event->has_registration() && ! $event->has_passed() ? $event->get_registration_for_user() : null;
+
 	if ( ! $event->has_registration() && ! $event->has_passed() ) {
-		if ( empty( $details ) ) {
+		// No registration to gate anything behind, so the card is purely
+		// informational: the details plus the meeting link and calendar links
+		// for everyone who can view the event.
+		$state   = 'details';
+		$title   = '';
+		$actions = pmpro_events_get_event_links_html( $event );
+
+		if ( empty( $details ) && empty( $actions ) ) {
 			return '';
 		}
-
-		return sprintf(
-			'<div class="%s"><div class="%s"><div class="%s">%s</div></div></div>',
-			esc_attr( pmpro_get_element_class( 'pmpro' ) ),
-			esc_attr( pmpro_get_element_class( 'pmpro_card', 'pmpro_events_card' ) ),
-			esc_attr( pmpro_get_element_class( 'pmpro_card_content' ) ),
-			$details
-		);
-	}
-
-	$registration = $event->has_passed() ? null : $event->get_registration_for_user();
-
-	if ( $event->has_passed() ) {
+	} elseif ( $event->has_passed() ) {
 		$state = 'passed';
 		/* translators: %s: the singular event label, lowercased, e.g. "event". */
 		$title   = sprintf( __( 'This %s has passed', 'pmpro-events' ), $singular );
@@ -375,13 +370,32 @@ function pmpro_events_get_registration_html( $event ) {
 	} elseif ( ! is_user_logged_in() ) {
 		$state = 'login';
 		/* translators: %s: the singular event label, lowercased, e.g. "event". */
-		$title   = sprintf( __( 'Register for this %s', 'pmpro-events' ), $singular );
-		$actions = sprintf(
-			'<a href="%s" class="%s">%s</a>',
-			esc_url( wp_login_url( $event->get_permalink() ) ),
-			esc_attr( pmpro_get_element_class( 'pmpro_btn' ) ),
-			esc_html__( 'Log in to register', 'pmpro-events' )
-		);
+		$title = sprintf( __( 'Register for this %s', 'pmpro-events' ), $singular );
+
+		// Registering needs an account, so the footer offers both ways to get
+		// one: a primary button to check out for the sign-up level, and a
+		// secondary outline button for people who already have an account.
+		// Without a sign-up level, logging in is the only path, so it gets the
+		// primary button to itself.
+		$signup_url = pmpro_events_get_signup_url( $event );
+		if ( ! empty( $signup_url ) ) {
+			$actions = sprintf(
+				'<a href="%s" class="%s">%s</a> <a href="%s" class="%s">%s</a>',
+				esc_url( $signup_url ),
+				esc_attr( pmpro_get_element_class( 'pmpro_btn' ) ),
+				esc_html__( 'Create an account', 'pmpro-events' ),
+				esc_url( wp_login_url( $event->get_permalink() ) ),
+				esc_attr( pmpro_get_element_class( 'pmpro_btn pmpro_btn-outline', 'pmpro_btn' ) ),
+				esc_html__( 'Log in', 'pmpro-events' )
+			);
+		} else {
+			$actions = sprintf(
+				'<a href="%s" class="%s">%s</a>',
+				esc_url( wp_login_url( $event->get_permalink() ) ),
+				esc_attr( pmpro_get_element_class( 'pmpro_btn' ) ),
+				esc_html__( 'Log in to register', 'pmpro-events' )
+			);
+		}
 	} else {
 		$state = 'register';
 		/* translators: %s: the singular event label, lowercased, e.g. "event". */
@@ -393,9 +407,11 @@ function pmpro_events_get_registration_html( $event ) {
 	?>
 	<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro' ) ); ?>">
 		<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_card', 'pmpro_events_card' ) ); ?> pmpro_events_card-<?php echo esc_attr( $state ); ?>">
-			<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_card_title pmpro_font-large' ) ); ?>">
-				<?php echo esc_html( $title ); ?>
-			</div>
+			<?php if ( ! empty( $title ) ) { ?>
+				<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_card_title pmpro_font-large' ) ); ?>">
+					<?php echo esc_html( $title ); ?>
+				</div>
+			<?php } ?>
 
 			<?php if ( ! empty( $details ) ) { ?>
 				<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_card_content' ) ); ?>">
@@ -427,6 +443,67 @@ function pmpro_events_get_registration_html( $event ) {
 }
 
 /**
+ * Get the checkout URL for the configured sign-up level.
+ *
+ * Shown to logged-out visitors on events with registration, so they can create
+ * an account instead of hunting for the levels page. Admins choose the level —
+ * ideally a free one — on the Events settings page.
+ *
+ * @since 2.0
+ *
+ * @param PMProEvents_Event $event The event the visitor came from.
+ * @return string The checkout URL, or an empty string when no level is configured.
+ */
+function pmpro_events_get_signup_url( $event ) {
+	$level_id = (int) get_option( 'pmpro_events_signup_level' );
+
+	if ( empty( $level_id ) || ! function_exists( 'pmpro_getLevel' ) ) {
+		return '';
+	}
+
+	// The level may have been deleted since it was chosen.
+	if ( empty( pmpro_getLevel( $level_id ) ) ) {
+		return '';
+	}
+
+	// The event rides along so that pmpro_events_confirmation_url() can send
+	// the new member back here after checkout. pmpro_url() returns an empty
+	// string when no checkout page is assigned, which hides the link.
+	return pmpro_url( 'checkout', '?pmpro_level=' . $level_id . '&pmpro_events_event=' . $event->get_id() );
+}
+
+/**
+ * Send a new member back to the event they came from after checkout.
+ *
+ * The checkout form posts back to its own URL, so the pmpro_events_event
+ * argument added by pmpro_events_get_signup_url() is still in the request
+ * when PMPro builds the confirmation redirect. Gateways that come back from
+ * an offsite payment flow lose the argument and fall through to PMPro's
+ * confirmation page as usual.
+ *
+ * @since 2.0
+ *
+ * @param string $url The confirmation URL.
+ * @return string The filtered URL.
+ */
+function pmpro_events_confirmation_url( $url ) {
+	$event_id = isset( $_REQUEST['pmpro_events_event'] ) ? (int) $_REQUEST['pmpro_events_event'] : 0;
+
+	if ( empty( $event_id ) ) {
+		return $url;
+	}
+
+	$event = new PMProEvents_Event( $event_id );
+
+	if ( ! $event->exists() || 'publish' !== get_post_status( $event_id ) ) {
+		return $url;
+	}
+
+	return $event->get_permalink();
+}
+add_filter( 'pmpro_confirmation_url', 'pmpro_events_confirmation_url' );
+
+/**
  * Build the register button and its form.
  *
  * @since 2.0
@@ -449,16 +526,18 @@ function pmpro_events_get_register_form_html( $event ) {
 }
 
 /**
- * Build the card actions for a member who is already registered.
+ * Build the meeting link and Add-to-Calendar links for an event.
  *
- * This is the only state that reveals the meeting URL.
+ * These reveal the meeting URL, so they are only shown to a registered
+ * attendee — or, when the event isn't taking registrations, to everyone who
+ * can view the event.
  *
  * @since 2.0
  *
  * @param PMProEvents_Event $event The event.
  * @return string The markup.
  */
-function pmpro_events_get_registered_state_html( $event ) {
+function pmpro_events_get_event_links_html( $event ) {
 	ob_start();
 
 	if ( $event->is_virtual() && ! empty( $event->virtual_url ) ) {
@@ -490,6 +569,22 @@ function pmpro_events_get_registered_state_html( $event ) {
 		</p>
 		<?php
 	}
+
+	return ob_get_clean();
+}
+
+/**
+ * Build the card actions for a member who is already registered.
+ *
+ * @since 2.0
+ *
+ * @param PMProEvents_Event $event The event.
+ * @return string The markup.
+ */
+function pmpro_events_get_registered_state_html( $event ) {
+	ob_start();
+
+	echo pmpro_events_get_event_links_html( $event ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	?>
 
 	<form action="<?php echo esc_url( pmpro_events_get_form_action() ); ?>" method="post" class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_form' ) ); ?>">

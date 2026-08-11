@@ -44,15 +44,23 @@ function pmpro_events_register_events_block() {
 			'editor_style'    => 'pmpro-events-editor-preview',
 			'render_callback' => 'pmpro_events_render_events',
 			'attributes'      => array(
-				'view'     => array(
+				'view'      => array(
 					'type'    => 'string',
 					'default' => 'list',
 				),
-				'limit'    => array(
+				'limit'     => array(
 					'type'    => 'number',
 					'default' => 10,
 				),
-				'category' => array(
+				'category'  => array(
+					'type'    => 'string',
+					'default' => '',
+				),
+				'showTitle' => array(
+					'type'    => 'boolean',
+					'default' => true,
+				),
+				'title'     => array(
 					'type'    => 'string',
 					'default' => '',
 				),
@@ -71,13 +79,42 @@ add_action( 'init', 'pmpro_events_register_events_block' );
  * @return string The markup.
  */
 function pmpro_events_shortcode( $atts ) {
-	return pmpro_events_render_events( shortcode_atts( array(
-		'view'     => 'list',
-		'limit'    => 10,
-		'category' => '',
-	), $atts, 'pmpro_events' ) );
+	$atts = shortcode_atts( array(
+		'view'       => 'list',
+		'limit'      => 10,
+		'category'   => '',
+		'title'      => '',
+		'show_title' => true,
+	), $atts, 'pmpro_events' );
+
+	// The block attribute name, so both spellings resolve the same way.
+	$atts['showTitle'] = $atts['show_title'];
+
+	return pmpro_events_render_events( $atts );
 }
 add_shortcode( 'pmpro_events', 'pmpro_events_shortcode' );
+
+/**
+ * Resolve the title to show above a block's output.
+ *
+ * Both events blocks let the site hide the title or replace the default one.
+ * The shortcodes pass show_title as a string, so it is validated as a boolean.
+ *
+ * @since 2.0
+ *
+ * @param array  $attributes The block or shortcode attributes.
+ * @param string $default    The title used when no custom title is set.
+ * @return string The title to display, or an empty string to show none.
+ */
+function pmpro_events_resolve_block_title( $attributes, $default ) {
+	$show = isset( $attributes['showTitle'] ) ? filter_var( $attributes['showTitle'], FILTER_VALIDATE_BOOLEAN ) : true;
+
+	if ( ! $show ) {
+		return '';
+	}
+
+	return empty( $attributes['title'] ) ? $default : (string) $attributes['title'];
+}
 
 /**
  * Render the Upcoming Events block and shortcode.
@@ -94,17 +131,32 @@ function pmpro_events_render_events( $attributes ) {
 	// Comma-separated slugs, so the shortcode can cover multiple categories.
 	$category = isset( $attributes['category'] ) ? array_filter( array_map( 'trim', explode( ',', (string) $attributes['category'] ) ) ) : array();
 
+	$title = pmpro_events_resolve_block_title(
+		$attributes,
+		/* translators: %s: the plural event label, e.g. "Events". */
+		sprintf( _x( 'Upcoming %s', 'plural event label', 'pmpro-events' ), pmpro_events_get_label( 'plural' ) )
+	);
+
 	$content = 'calendar' === $view
 		? pmpro_events_get_events_calendar_html( $category )
 		: pmpro_events_get_events_list_html( $limit, $category );
 
 	// PMPro nests all of its styles under the .pmpro class, so the output has
 	// to be wrapped in that container to pick them up.
-	return sprintf(
-		'<div class="%s">%s</div>',
-		esc_attr( pmpro_get_element_class( 'pmpro' ) ),
-		$content
-	);
+	ob_start();
+	?>
+	<div class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro' ) ); ?>">
+		<section class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_section', 'pmpro_events_events' ) ); ?>">
+			<?php if ( ! empty( $title ) ) { ?>
+				<h2 class="<?php echo esc_attr( pmpro_get_element_class( 'pmpro_section_title pmpro_font-x-large' ) ); ?>"><?php echo esc_html( $title ); ?></h2>
+			<?php } ?>
+
+			<?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+		</section>
+	</div>
+	<?php
+
+	return ob_get_clean();
 }
 
 /**
@@ -157,6 +209,21 @@ function pmpro_events_get_events_list_html( $limit, $category = array() ) {
 		);
 	}
 
+	return pmpro_events_get_event_cards_html( $events );
+}
+
+/**
+ * Build a list of event cards, each linking to its event.
+ *
+ * Shared by the Upcoming Events list view and the My Events block, so a
+ * member's own events look the same as the site-wide list.
+ *
+ * @since 2.0
+ *
+ * @param PMProEvents_Event[] $events The events to list.
+ * @return string The markup.
+ */
+function pmpro_events_get_event_cards_html( $events ) {
 	ob_start();
 	?>
 	<div class="pmpro_events_list">

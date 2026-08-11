@@ -26,16 +26,56 @@
 			html: false,
 			multiple: false,
 		},
-		edit: function () {
+		attributes: {
+			showTitle: {
+				type: 'boolean',
+				default: true,
+			},
+			title: {
+				type: 'string',
+				default: '',
+			},
+		},
+		edit: function ( props ) {
+			var controls = el(
+				blockEditor.InspectorControls,
+				null,
+				el(
+					components.PanelBody,
+					{ title: __( 'Settings', 'pmpro-events' ) },
+					el( components.ToggleControl, {
+						label: __( 'Show title', 'pmpro-events' ),
+						checked: props.attributes.showTitle,
+						onChange: function ( showTitle ) {
+							props.setAttributes( { showTitle: showTitle } );
+						},
+					} ),
+					props.attributes.showTitle &&
+						el( components.TextControl, {
+							label: __( 'Title', 'pmpro-events' ),
+							value: props.attributes.title,
+							placeholder: __( 'My Events', 'pmpro-events' ),
+							help: __( 'Leave blank for the default title.', 'pmpro-events' ),
+							onChange: function ( title ) {
+								props.setAttributes( { title: title } );
+							},
+						} )
+				)
+			);
+
 			// useBlockProps() is what makes the block selectable in the editor,
 			// and Disabled keeps the preview's event links from eating clicks.
 			return el(
 				'div',
 				blockEditor.useBlockProps(),
+				controls,
 				el(
 					components.Disabled,
 					null,
-					el( serverSideRender, { block: 'pmpro-events/my-events' } )
+					el( serverSideRender, {
+						block: 'pmpro-events/my-events',
+						attributes: props.attributes,
+					} )
 				)
 			);
 		},

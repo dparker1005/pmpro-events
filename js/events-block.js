@@ -38,6 +38,14 @@
 				type: 'string',
 				default: '',
 			},
+			showTitle: {
+				type: 'boolean',
+				default: true,
+			},
+			title: {
+				type: 'string',
+				default: '',
+			},
 		},
 		edit: function ( props ) {
 			var categories = data.useSelect( function ( select ) {
@@ -61,6 +69,23 @@
 				el(
 					components.PanelBody,
 					{ title: __( 'Settings', 'pmpro-events' ) },
+					el( components.ToggleControl, {
+						label: __( 'Show title', 'pmpro-events' ),
+						checked: props.attributes.showTitle,
+						onChange: function ( showTitle ) {
+							props.setAttributes( { showTitle: showTitle } );
+						},
+					} ),
+					props.attributes.showTitle &&
+						el( components.TextControl, {
+							label: __( 'Title', 'pmpro-events' ),
+							value: props.attributes.title,
+							placeholder: __( 'Upcoming Events', 'pmpro-events' ),
+							help: __( 'Leave blank for the default title.', 'pmpro-events' ),
+							onChange: function ( title ) {
+								props.setAttributes( { title: title } );
+							},
+						} ),
 					el( components.SelectControl, {
 						label: __( 'View', 'pmpro-events' ),
 						value: props.attributes.view,

@@ -215,10 +215,11 @@ function pmpro_events_download_ics() {
 		wp_die( esc_html__( 'Event not found.', 'pmpro-events' ), '', array( 'response' => 404 ) );
 	}
 
-	// Only a registered attendee can download the invite, since it can contain
-	// the meeting URL.
-	if ( empty( $event->get_registration_for_user() ) ) {
-		wp_die( esc_html__( 'You are not registered for this event.', 'pmpro-events' ), '', array( 'response' => 403 ) );
+	// The invite can contain the meeting URL, so it goes to registered
+	// attendees — or, when the event isn't taking registrations, to anyone who
+	// can view the event.
+	if ( ! $event->user_can_view_links() ) {
+		wp_die( esc_html__( 'Sorry, you do not have access to this invite. Try reloading the event page.', 'pmpro-events' ), '', array( 'response' => 403 ) );
 	}
 
 	$content = pmpro_events_get_ics_content( $event );
@@ -241,6 +242,9 @@ function pmpro_events_download_ics() {
 	exit;
 }
 add_action( 'admin_post_pmpro_events_ics', 'pmpro_events_download_ics' );
+// Logged-out visitors can download the invite for an event that isn't taking
+// registrations, so the handler has to answer nopriv requests too.
+add_action( 'admin_post_nopriv_pmpro_events_ics', 'pmpro_events_download_ics' );
 
 /**
  * Get the Add-to-Calendar links for an event.

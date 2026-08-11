@@ -89,7 +89,7 @@ const useEventMeta = () => {
 };
 
 /**
- * The Event Details panel: when the event happens, and how many can attend.
+ * The Event Details panel: when the event happens.
  *
  * @return {Element} The panel.
  */
@@ -97,7 +97,6 @@ const EventDetailsPanel = () => {
 	const [ meta, updateMeta ] = useEventMeta();
 
 	const allDay = !! meta.pmpro_event_all_day;
-	const hasRegistration = !! meta.pmpro_event_has_registration;
 
 	return (
 		<PluginDocumentSettingPanel
@@ -164,22 +163,6 @@ const EventDetailsPanel = () => {
 				options={ timezones }
 				onChange={ ( value ) => updateMeta( { pmpro_event_timezone: value } ) }
 			/>
-
-			{ hasRegistration && (
-				<TextControl
-					label={ __( 'Capacity', 'pmpro-events' ) }
-					type="number"
-					min="0"
-					step="1"
-					value={ String( meta.pmpro_event_capacity || 0 ) }
-					onChange={ ( value ) =>
-						updateMeta( {
-							pmpro_event_capacity: Math.max( 0, parseInt( value, 10 ) || 0 ),
-						} )
-					}
-					help={ __( 'The number of people who can register. Use 0 for unlimited.', 'pmpro-events' ) }
-				/>
-			) }
 		</PluginDocumentSettingPanel>
 	);
 };
@@ -194,6 +177,7 @@ const LocationPanel = () => {
 
 	const hasLocation = !! meta.pmpro_event_has_location;
 	const locationType = meta.pmpro_event_location_type || 'in_person';
+	const hasRegistration = !! meta.pmpro_event_has_registration;
 
 	return (
 		<PluginDocumentSettingPanel
@@ -236,7 +220,11 @@ const LocationPanel = () => {
 							onChange={ ( value ) =>
 								updateMeta( { pmpro_event_virtual_url: value } )
 							}
-							help={ __( 'Only shown to people who are registered for this event.', 'pmpro-events' ) }
+							help={
+								hasRegistration
+									? __( 'Only shown to people who are registered for this event.', 'pmpro-events' )
+									: __( 'Registration is disabled, so this is shown to everyone who can view this event.', 'pmpro-events' )
+							}
 						/>
 					) : (
 						<>
@@ -264,12 +252,14 @@ const LocationPanel = () => {
 };
 
 /**
- * The Registration panel: whether members can claim a spot.
+ * The Registration panel: whether members can claim a spot, and how many.
  *
  * @return {Element} The panel.
  */
 const RegistrationPanel = () => {
 	const [ meta, updateMeta ] = useEventMeta();
+
+	const hasRegistration = !! meta.pmpro_event_has_registration;
 
 	return (
 		<PluginDocumentSettingPanel
@@ -280,7 +270,7 @@ const RegistrationPanel = () => {
 			<PanelRow>
 				<ToggleControl
 					label={ __( 'Enable registration', 'pmpro-events' ) }
-					checked={ !! meta.pmpro_event_has_registration }
+					checked={ hasRegistration }
 					onChange={ ( value ) =>
 						updateMeta( { pmpro_event_has_registration: value } )
 					}
@@ -290,6 +280,22 @@ const RegistrationPanel = () => {
 					) }
 				/>
 			</PanelRow>
+
+			{ hasRegistration && (
+				<TextControl
+					label={ __( 'Capacity', 'pmpro-events' ) }
+					type="number"
+					min="0"
+					step="1"
+					value={ String( meta.pmpro_event_capacity || 0 ) }
+					onChange={ ( value ) =>
+						updateMeta( {
+							pmpro_event_capacity: Math.max( 0, parseInt( value, 10 ) || 0 ),
+						} )
+					}
+					help={ __( 'The number of people who can register. Use 0 for unlimited.', 'pmpro-events' ) }
+				/>
+			) }
 		</PluginDocumentSettingPanel>
 	);
 };

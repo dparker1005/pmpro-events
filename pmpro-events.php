@@ -40,6 +40,7 @@ function pmpro_events_plugin_init() {
 		require_once( $path . '/modules/default/class-pmproevents-event.php' );
 		require_once( $path . '/modules/default/class-pmproevents-event-registration.php' );
 		require_once( $path . '/modules/default/cpt.php' );
+		require_once( $path . '/modules/default/events-page.php' );
 		require_once( $path . '/modules/default/editor.php' );
 		require_once( $path . '/modules/default/registration.php' );
 		require_once( $path . '/modules/default/emails.php' );

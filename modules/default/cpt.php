@@ -100,7 +100,11 @@ function pmpro_events_register_post_type() {
 		// schema. Without it the sidebar panels have nothing to bind to and the
 		// editor silently discards every meta value on save.
 		'supports'     => array( 'title', 'editor', 'thumbnail', 'excerpt', 'custom-fields' ),
-		'has_archive'  => 'events',
+		// When an Events page is assigned under Memberships > Settings > Pages,
+		// that page is the events landing page. Drop the post type archive so
+		// the page — typically itself at /events/ — isn't shadowed by the
+		// archive rewrite rule.
+		'has_archive'  => pmpro_events_get_events_page_id() ? false : 'events',
 		'rewrite'      => array( 'slug' => 'event', 'with_front' => false ),
 		'capability_type' => 'post',
 	);
@@ -183,6 +187,54 @@ function pmpro_events_register_post_meta() {
 	}
 }
 add_action( 'init', 'pmpro_events_register_post_meta' );
+
+/**
+ * Strip meta the requester shouldn't see from REST API responses.
+ *
+ * The event meta is in the REST schema so the block editor can edit it, but
+ * that also makes it readable at /wp/v2/pmpro_event by anyone. PMPro filters
+ * content and excerpt in REST responses through the_content, but never touches
+ * meta — so without this, the meeting URL the template only reveals to
+ * registered attendees, and the venue address of a members-only event, would
+ * both be one anonymous API request away.
+ *
+ * @since 2.0
+ *
+ * @param WP_REST_Response $response The response.
+ * @param WP_Post          $post     The event.
+ * @return WP_REST_Response The filtered response.
+ */
+function pmpro_events_rest_prepare_event( $response, $post ) {
+	// Users who can edit the event need the real values in the editor.
+	if ( current_user_can( 'edit_post', $post->ID ) ) {
+		return $response;
+	}
+
+	$data = $response->get_data();
+
+	if ( empty( $data['meta'] ) || ! is_array( $data['meta'] ) ) {
+		return $response;
+	}
+
+	$event = new PMProEvents_Event( $post->ID );
+
+	// The meeting URL follows the same rule as the event page: registered
+	// attendees only, or anyone who can view the event when registration is off.
+	if ( isset( $data['meta']['pmpro_event_virtual_url'] ) && ! $event->user_can_view_links() ) {
+		$data['meta']['pmpro_event_virtual_url'] = '';
+	}
+
+	// A restricted event only teases its date and venue name on the frontend;
+	// the full address stays behind the membership requirement.
+	if ( isset( $data['meta']['pmpro_event_venue_address'] ) && ! $event->user_can_access() ) {
+		$data['meta']['pmpro_event_venue_address'] = '';
+	}
+
+	$response->set_data( $data );
+
+	return $response;
+}
+add_filter( 'rest_prepare_' . PMProEvents_Event::POST_TYPE, 'pmpro_events_rest_prepare_event', 10, 2 );
 
 /**
  * Sanitize a string meta value.

@@ -84,31 +84,7 @@
 	}
 
 	/**
-	 * The My Events block and shortcode.
-	 */
-	.pmpro_events_my_events_list {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-
-	.pmpro_events_my_events_list li {
-		margin: 0 0 var(--pmpro--base--spacing--small, 0.75rem);
-		padding: 0;
-	}
-
-	.pmpro_events_my_events_list li:last-child {
-		margin-bottom: 0;
-	}
-
-	.pmpro_events_my_events_list .pmpro_events_my_events_date {
-		display: block;
-		font-size: 0.9em;
-		opacity: 0.8;
-	}
-
-	/**
-	 * The Upcoming Events list view.
+	 * The Upcoming Events list view, shared by the My Events block.
 	 */
 	.pmpro_events_list {
 		display: grid;

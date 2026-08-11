@@ -51,6 +51,13 @@ function pmpro_events_save_settings() {
 	);
 	update_option( 'pmpro_events_labels', $labels, 'no' );
 
+	// The level behind the "create an account" link shown to logged-out
+	// visitors. Only present when the Default module's section was rendered, so
+	// don't zero it out when the field is missing.
+	if ( isset( $_POST['pmpro_events_signup_level'] ) ) {
+		update_option( 'pmpro_events_signup_level', (int) $_POST['pmpro_events_signup_level'], 'no' );
+	}
+
 	// The rewrite rules depend on the settings above, but this request loaded
 	// modules based on the old configuration — flushing now would build rules
 	// without the event post type. Flush on the next request instead, once the
@@ -112,6 +119,36 @@ function pmpro_events_settings_page() {
 					<?php } ?>
 				</tbody>
 			</table>
+
+			<?php if ( pmpro_events_is_module_active( 'default' ) && function_exists( 'pmpro_getAllLevels' ) ) { ?>
+				<h2><?php esc_html_e( 'Registration', 'pmpro-events' ); ?></h2>
+				<p class="description"><?php esc_html_e( 'Logged-out visitors are asked to log in before registering. Choose a level here — ideally a free one — to also offer them a "create an account" link that goes straight to checkout for that level.', 'pmpro-events' ); ?></p>
+
+				<table class="form-table" role="presentation">
+					<tbody>
+						<tr>
+							<th scope="row"><label for="pmpro_events_signup_level"><?php esc_html_e( 'Sign-Up Level', 'pmpro-events' ); ?></label></th>
+							<td>
+								<select id="pmpro_events_signup_level" name="pmpro_events_signup_level">
+									<option value="0"><?php esc_html_e( 'None — only show a log in link', 'pmpro-events' ); ?></option>
+									<?php
+									$signup_level = (int) get_option( 'pmpro_events_signup_level' );
+									$all_levels   = pmpro_getAllLevels( true, true );
+									if ( function_exists( 'pmpro_sort_levels_by_order' ) ) {
+										$all_levels = pmpro_sort_levels_by_order( $all_levels );
+									}
+									foreach ( $all_levels as $level ) {
+										?>
+										<option value="<?php echo esc_attr( $level->id ); ?>" <?php selected( $signup_level, (int) $level->id ); ?>><?php echo esc_html( $level->name ); ?></option>
+										<?php
+									}
+									?>
+								</select>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			<?php } ?>
 
 			<h2><?php esc_html_e( 'Terminology', 'pmpro-events' ); ?></h2>
 			<p class="description"><?php esc_html_e( 'Rename "Event" throughout the admin menu, the event template, and the member account page.', 'pmpro-events' ); ?></p>

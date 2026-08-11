@@ -564,6 +564,26 @@ class PMProEvents_Event {
 	}
 
 	/**
+	 * Whether a user may see the meeting URL and calendar invite for this event.
+	 *
+	 * Registration is the ticket: an attendee gets the links. When the event
+	 * isn't taking registrations there is no ticket to check, so everyone who
+	 * can view the event gets them.
+	 *
+	 * @since 2.0
+	 *
+	 * @param int $user_id The user ID to check. Defaults to the current user.
+	 * @return bool Whether the user may see the event links.
+	 */
+	public function user_can_view_links( $user_id = null ) {
+		if ( ! $this->has_registration() ) {
+			return $this->user_can_access( $user_id );
+		}
+
+		return ! empty( $this->get_registration_for_user( $user_id ) );
+	}
+
+	/**
 	 * Whether the event is virtual.
 	 *
 	 * @since 2.0
@@ -588,8 +608,8 @@ class PMProEvents_Event {
 	/**
 	 * Get a single-line location string for display and calendar invites.
 	 *
-	 * The virtual meeting URL is deliberately excluded — it is only ever shown to
-	 * a registered attendee.
+	 * The virtual meeting URL is deliberately excluded — it is only shown to
+	 * users who pass user_can_view_links().
 	 *
 	 * @since 2.0
 	 *
