@@ -29,6 +29,10 @@ require_once( PMPRO_EVENTS_DIR . '/includes/settings.php' );
  * engine. The third-party modules are loaded when their events plugin is
  * detected, as they always have been.
  *
+ * Hooked to init at priority 0 rather than plugins_loaded so that the module
+ * registry's translated names don't trigger translation loading too early.
+ * Every hook the modules register fires at init priority 10 or later.
+ *
  * @since 1.0
  */
 function pmpro_events_plugin_init() {
@@ -77,7 +81,7 @@ function pmpro_events_plugin_init() {
 		require_once( $path . '/modules/sugar-calendar.php' );
 	}
 }
-add_action( 'plugins_loaded', 'pmpro_events_plugin_init' );
+add_action( 'init', 'pmpro_events_plugin_init', 0 );
 
 /**
  * Load Plugin Text Domain for Translations.
