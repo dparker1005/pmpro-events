@@ -24,6 +24,13 @@ function pmpro_events_register_block_template() {
 		return;
 	}
 
+	// Classic themes with a theme.json get 'block-templates' support from core,
+	// which would make this template win over their single.php. Its header and
+	// footer template parts don't exist there, so only register for block themes.
+	if ( ! wp_is_block_theme() ) {
+		return;
+	}
+
 	/**
 	 * Filter whether to register the built-in single event block template.
 	 *
