@@ -65,7 +65,10 @@ function pmpro_events_check_for_upgrades() {
 	pmpro_events_set_default_modules();
 }
 
-// Check if the DB needs to be upgraded.
+// Check if the DB needs to be upgraded. This may set the default module
+// configuration, which reads the translated module registry, so it runs on
+// init rather than plugins_loaded. It is hooked before the module loader in
+// pmpro-events.php so that it runs first at the same priority.
 if ( is_admin() || defined( 'WP_CLI' ) ) {
-	add_action( 'plugins_loaded', 'pmpro_events_check_for_upgrades', 5 );
+	add_action( 'init', 'pmpro_events_check_for_upgrades', 0 );
 }
